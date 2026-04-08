@@ -158,7 +158,7 @@ export default function OnlineUsers() {
        const isAestheticAction = updates.name_color !== undefined || updates.name_decoration !== undefined || updates.name_glow !== undefined;
        
        if (isPenalAction || isAestheticAction) {
-         sendSystemMessage(`👑 قام الإداري [${currentUser.username}] بـ (${actionName}) للعضو [${targetUser.username}]`);
+         sendSystemMessage(`👑 قام الـ ${currentUser.role} [${currentUser.username}] بـ (${actionName}) للعضو [${targetUser.username}]`);
        }
     }
     setContextMenu(null);
@@ -288,151 +288,181 @@ export default function OnlineUsers() {
       </div>
 
       {/* Admin Context Menu - Reworked for "Full Admin Control" */}
-      {contextMenu && (
-        <div
-          className="fixed z-[9999] bg-white/95 dark:bg-dark-800/95 backdrop-blur-md border border-gray-200 dark:border-dark-700 rounded-2xl shadow-2xl overflow-hidden min-w-[210px] py-1 animate-in zoom-in-95 duration-100"
-          style={{ top: contextMenu.y, left: contextMenu.x }}
-          onClick={(e) => e.stopPropagation()}
-        >
-          <div className="px-4 py-2 border-b border-gray-100 dark:border-dark-700 mb-1 flex items-center justify-between">
-            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{contextMenu.user.username}</p>
-            {contextMenu.user.is_banned && <Ban className="w-3 h-3 text-red-500" />}
+      {contextMenu && (() => {
+        const meRole = currentUser?.role?.toLowerCase() || 'user';
+        const tgtRole = contextMenu.user.role?.toLowerCase() || 'user';
+        const isCreator = activeRoom?.creator_id === currentUser?.id;
+        
+        const canPunish = meRole === 'admin' || isCreator || 
+          ((meRole === 'moderator' || meRole === 'super') && (tgtRole === 'user' || tgtRole === 'vip'));
+          
+        const canDecorate = meRole === 'admin' || 
+          ((meRole === 'moderator' || meRole === 'super') && (tgtRole === 'user' || tgtRole === 'vip' || tgtRole === 'super'));
+          
+        const canPromote = meRole === 'admin' || meRole === 'moderator' || meRole === 'super';
+        
+        const availableRanks: string[] = [];
+        if (meRole === 'admin') availableRanks.push('Admin', 'Super', 'Moderator', 'VIP', 'User');
+        else if (meRole === 'moderator') availableRanks.push('Super', 'VIP', 'User');
+        else if (meRole === 'super') availableRanks.push('VIP', 'User');
+
+        return (
+          <div
+            className="fixed z-[9999] bg-white/95 dark:bg-dark-800/95 backdrop-blur-md border border-gray-200 dark:border-dark-700 rounded-2xl shadow-2xl overflow-hidden min-w-[210px] py-1 animate-in zoom-in-95 duration-100"
+            style={{ top: contextMenu.y, left: contextMenu.x }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="px-4 py-2 border-b border-gray-100 dark:border-dark-700 mb-1 flex items-center justify-between">
+              <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{contextMenu.user.username}</p>
+              {contextMenu.user.is_banned && <Ban className="w-3 h-3 text-red-500" />}
+            </div>
+
+            <button onClick={() => setContextMenu(null)} className="w-full flex items-center gap-3 px-4 py-2.5 text-xs font-bold text-gray-700 dark:text-gray-300 hover:bg-primary-500 hover:text-white transition-colors">
+              <UserIcon className="w-4 h-4" /> عرض الملف
+            </button>
+
+            {(canPromote || canDecorate || canPunish) && (
+              <>
+                <div className="h-px bg-gray-100 dark:bg-dark-700 my-1"></div>
+                
+                {/* Promotion Submenu */}
+                {canPromote && availableRanks.length > 0 && (
+                  <>
+                    <button 
+                      onClick={(e) => { e.stopPropagation(); setShowRankMenu(!showRankMenu); setShowColorMenu(false); setShowDecorMenu(false); }}
+                      className="w-full flex items-center justify-between px-4 py-2.5 text-xs font-bold text-gray-700 dark:text-gray-300 hover:bg-amber-500 hover:text-white transition-colors"
+                    >
+                      <div className="flex items-center gap-3"><Shield className="w-4 h-4" /> تغيير الرتبة</div>
+                      <span className="text-[8px] opacity-50">◀</span>
+                    </button>
+                    {showRankMenu && (
+                      <div className="bg-gray-50 dark:bg-dark-900 border-y border-gray-100 dark:border-dark-700 py-1">
+                         {availableRanks.map(r => (
+                           <button key={r} onClick={() => updateProfile(contextMenu.user, { role: r }, `ترقية إلى ${r}`)} className="w-full text-right px-10 py-1.5 text-[10px] font-bold hover:text-primary-500">{r}</button>
+                         ))}
+                      </div>
+                    )}
+                  </>
+                )}
+
+                {/* Decoration & Colors */}
+                {canDecorate && (
+                  <>
+                    <button 
+                      onClick={(e) => { e.stopPropagation(); setShowDecorMenu(!showDecorMenu); setShowRankMenu(false); setShowColorMenu(false); }}
+                      className="w-full flex items-center justify-between px-4 py-2.5 text-xs font-bold text-gray-700 dark:text-gray-300 hover:bg-purple-500 hover:text-white transition-colors"
+                    >
+                      <div className="flex items-center gap-3"><Sparkles className="w-4 h-4" /> زخرفة فنية</div>
+                      <span className="text-[8px] opacity-50">◀</span>
+                    </button>
+                    {showDecorMenu && (
+                      <div className="bg-gray-50 dark:bg-dark-900 border-y border-gray-100 dark:border-dark-700 py-1 max-h-40 overflow-y-auto">
+                         {DECORATIONS.map(d => (
+                           <button key={d.label} onClick={() => updateProfile(contextMenu.user, { name_decoration: d.value }, `زخرفة الاسم`)} className="w-full text-right px-10 py-1.5 text-[10px] font-bold hover:text-primary-500">{d.label}</button>
+                         ))}
+                      </div>
+                    )}
+
+                    <button 
+                      onClick={(e) => { e.stopPropagation(); setShowColorMenu(!showColorMenu); setShowRankMenu(false); setShowDecorMenu(false); }}
+                      className="w-full flex items-center justify-between px-4 py-2.5 text-xs font-bold text-gray-700 dark:text-gray-300 hover:bg-blue-500 hover:text-white transition-colors"
+                    >
+                      <div className="flex items-center gap-3"><Palette className="w-4 h-4" /> تلوين (متوهج)</div>
+                      <span className="text-[8px] opacity-50">◀</span>
+                    </button>
+                    {showColorMenu && (
+                      <div className="bg-gray-50 dark:bg-dark-900 border-y border-gray-100 dark:border-dark-700 py-1">
+                         {GLOW_COLORS.map(c => (
+                           <button 
+                             key={c.label} 
+                             onClick={() => updateProfile(contextMenu.user, { name_color: c.value, name_glow: c.glow }, `تلوين الاسم`)} 
+                             className="w-full text-right px-10 py-1.5 text-[10px] font-bold flex items-center justify-end gap-2 hover:bg-white dark:hover:bg-dark-800"
+                           >
+                             {c.label}
+                             <div className="w-2 h-2 rounded-full" style={{ backgroundColor: c.value, boxShadow: c.glow }}></div>
+                           </button>
+                         ))}
+                         <button onClick={() => updateProfile(contextMenu.user, { name_color: null, name_glow: null }, `إزالة اللون`)} className="w-full text-right px-10 py-1.5 text-[10px] font-bold text-red-400">إزالة التلوين</button>
+                      </div>
+                    )}
+                  </>
+                )}
+
+                {/* Punishment */}
+                {canPunish && (
+                  <>
+                    <div className="h-px bg-gray-100 dark:bg-dark-700 my-1"></div>
+                    
+                    <button 
+                      onClick={(e) => { e.stopPropagation(); setShowMuteMenu(!showMuteMenu); setShowRankMenu(false); setShowColorMenu(false); setShowDecorMenu(false); }}
+                      className="w-full flex items-center justify-between px-4 py-2.5 text-xs font-bold text-amber-600 dark:text-amber-400 hover:bg-amber-500 hover:text-white transition-colors"
+                    >
+                      <div className="flex items-center gap-3"><VolumeX className="w-4 h-4" /> كتم العضو</div>
+                      <span className="text-[8px] opacity-50">◀</span>
+                    </button>
+                    {showMuteMenu && (
+                      <div className="bg-gray-50 dark:bg-dark-900 border-y border-gray-100 dark:border-dark-700 py-1">
+                         {[
+                           { l: 'كتم نهائي', v: true, d: null },
+                           { l: '10 دقائق', v: true, d: 10 },
+                           { l: 'ساعة واحدة', v: true, d: 60 },
+                           { l: '12 ساعة', v: true, d: 720 },
+                           { l: 'فك الكتم', v: false, d: null },
+                         ].map(m => (
+                           <button 
+                             key={m.l} 
+                             onClick={() => {
+                               const until = m.d ? new Date(Date.now() + m.d * 60000).toISOString() : null;
+                               updateProfile(contextMenu.user, { is_muted: m.v, muted_until: until }, m.v ? `كتم (${m.l})` : 'فك الكتم');
+                             }} 
+                             className="w-full text-right px-10 py-1.5 text-[10px] font-bold hover:text-amber-500"
+                           >
+                             {m.l}
+                           </button>
+                         ))}
+                      </div>
+                    )}
+
+                    <button 
+                      onClick={() => updateProfile(contextMenu.user, { is_kicked: true }, 'طرد العضو')} 
+                      className="w-full flex items-center gap-3 px-4 py-2.5 text-xs font-bold text-orange-600 hover:bg-orange-500 hover:text-white transition-colors"
+                    >
+                      <LogOut className="w-4 h-4" /> طرد فوري (Kick)
+                    </button>
+
+                    <button onClick={(e) => { e.stopPropagation(); setShowBanMenu(!showBanMenu); setShowMuteMenu(false); setShowRankMenu(false); setShowColorMenu(false); setShowDecorMenu(false); }} className="w-full flex items-center justify-between px-4 py-2.5 text-xs font-bold text-red-600 dark:text-red-400 hover:bg-red-500 hover:text-white transition-colors">
+                      <div className="flex items-center gap-3"><Ban className="w-4 h-4" /> بند (حظر) العضو</div>
+                      <span className="text-[8px] opacity-50">◀</span>
+                    </button>
+                    {showBanMenu && (
+                      <div className="bg-gray-50 dark:bg-dark-900 border-y border-gray-100 dark:border-dark-700 py-1">
+                         {[
+                           { l: 'باند نهائي', v: true, d: null },
+                           { l: 'باند 6 ساعات', v: true, d: 360 },
+                           { l: 'باند 24 ساعة', v: true, d: 1440 },
+                           { l: 'باند 3 أيام', v: true, d: 4320 },
+                           { l: 'فك الحظر', v: false, d: null },
+                         ].map(m => (
+                           <button 
+                             key={m.l} 
+                             onClick={() => {
+                               const until = m.d ? new Date(Date.now() + m.d * 60000).toISOString() : null;
+                               updateProfile(contextMenu.user, { is_banned: m.v, banned_until: until }, m.v ? `حظر (${m.l})` : 'فك الحظر');
+                             }} 
+                             className="w-full text-right px-10 py-1.5 text-[10px] font-bold hover:text-red-500"
+                           >
+                             {m.l}
+                           </button>
+                         ))}
+                      </div>
+                    )}
+                  </>
+                )}
+              </>
+            )}
           </div>
-
-          <button onClick={() => setContextMenu(null)} className="w-full flex items-center gap-3 px-4 py-2.5 text-xs font-bold text-gray-700 dark:text-gray-300 hover:bg-primary-500 hover:text-white transition-colors">
-            <UserIcon className="w-4 h-4" /> عرض الملف
-          </button>
-
-          {isAdmin && (
-            <>
-              <div className="h-px bg-gray-100 dark:bg-dark-700 my-1"></div>
-              
-              {/* Promotion Submenu */}
-              <button 
-                onClick={(e) => { e.stopPropagation(); setShowRankMenu(!showRankMenu); setShowColorMenu(false); setShowDecorMenu(false); }}
-                className="w-full flex items-center justify-between px-4 py-2.5 text-xs font-bold text-gray-700 dark:text-gray-300 hover:bg-amber-500 hover:text-white transition-colors"
-              >
-                <div className="flex items-center gap-3"><Shield className="w-4 h-4" /> تغيير الرتبة</div>
-                <span className="text-[8px] opacity-50">◀</span>
-              </button>
-              {showRankMenu && (
-                <div className="bg-gray-50 dark:bg-dark-900 border-y border-gray-100 dark:border-dark-700 py-1">
-                   {['VIP', 'Moderator', 'Super', 'User'].map(r => (
-                     <button key={r} onClick={() => updateProfile(contextMenu.user, { role: r }, `ترقية إلى ${r}`)} className="w-full text-right px-10 py-1.5 text-[10px] font-bold hover:text-primary-500">{r}</button>
-                   ))}
-                </div>
-              )}
-
-              {/* Decoration Submenu */}
-              <button 
-                onClick={(e) => { e.stopPropagation(); setShowDecorMenu(!showDecorMenu); setShowRankMenu(false); setShowColorMenu(false); }}
-                className="w-full flex items-center justify-between px-4 py-2.5 text-xs font-bold text-gray-700 dark:text-gray-300 hover:bg-purple-500 hover:text-white transition-colors"
-              >
-                <div className="flex items-center gap-3"><Sparkles className="w-4 h-4" /> زخرفة فنية</div>
-                <span className="text-[8px] opacity-50">◀</span>
-              </button>
-              {showDecorMenu && (
-                <div className="bg-gray-50 dark:bg-dark-900 border-y border-gray-100 dark:border-dark-700 py-1 max-h-40 overflow-y-auto">
-                   {DECORATIONS.map(d => (
-                     <button key={d.label} onClick={() => updateProfile(contextMenu.user, { name_decoration: d.value }, `زخرفة الاسم`)} className="w-full text-right px-10 py-1.5 text-[10px] font-bold hover:text-primary-500">{d.label}</button>
-                   ))}
-                </div>
-              )}
-
-              {/* Color Submenu */}
-              <button 
-                onClick={(e) => { e.stopPropagation(); setShowColorMenu(!showColorMenu); setShowRankMenu(false); setShowDecorMenu(false); }}
-                className="w-full flex items-center justify-between px-4 py-2.5 text-xs font-bold text-gray-700 dark:text-gray-300 hover:bg-blue-500 hover:text-white transition-colors"
-              >
-                <div className="flex items-center gap-3"><Palette className="w-4 h-4" /> تلوين (متوهج)</div>
-                <span className="text-[8px] opacity-50">◀</span>
-              </button>
-              {showColorMenu && (
-                <div className="bg-gray-50 dark:bg-dark-900 border-y border-gray-100 dark:border-dark-700 py-1">
-                   {GLOW_COLORS.map(c => (
-                     <button 
-                       key={c.label} 
-                       onClick={() => updateProfile(contextMenu.user, { name_color: c.value, name_glow: c.glow }, `تلوين الاسم`)} 
-                       className="w-full text-right px-10 py-1.5 text-[10px] font-bold flex items-center justify-end gap-2 hover:bg-white dark:hover:bg-dark-800"
-                     >
-                       {c.label}
-                       <div className="w-2 h-2 rounded-full" style={{ backgroundColor: c.value, boxShadow: c.glow }}></div>
-                     </button>
-                   ))}
-                   <button onClick={() => updateProfile(contextMenu.user, { name_color: null, name_glow: null }, `إزالة اللون`)} className="w-full text-right px-10 py-1.5 text-[10px] font-bold text-red-400">إزالة التلوين</button>
-                </div>
-              )}
-
-              <div className="h-px bg-gray-100 dark:bg-dark-700 my-1"></div>
-              
-              <button 
-                onClick={(e) => { e.stopPropagation(); setShowMuteMenu(!showMuteMenu); setShowRankMenu(false); setShowColorMenu(false); setShowDecorMenu(false); }}
-                className="w-full flex items-center justify-between px-4 py-2.5 text-xs font-bold text-amber-600 dark:text-amber-400 hover:bg-amber-500 hover:text-white transition-colors"
-              >
-                <div className="flex items-center gap-3"><VolumeX className="w-4 h-4" /> كتم العضو</div>
-                <span className="text-[8px] opacity-50">◀</span>
-              </button>
-              {showMuteMenu && (
-                <div className="bg-gray-50 dark:bg-dark-900 border-y border-gray-100 dark:border-dark-700 py-1">
-                   {[
-                     { l: 'كتم نهائي', v: true, d: null },
-                     { l: '10 دقائق', v: true, d: 10 },
-                     { l: 'ساعة واحدة', v: true, d: 60 },
-                     { l: '12 ساعة', v: true, d: 720 },
-                     { l: 'فك الكتم', v: false, d: null },
-                   ].map(m => (
-                     <button 
-                       key={m.l} 
-                       onClick={() => {
-                         const until = m.d ? new Date(Date.now() + m.d * 60000).toISOString() : null;
-                         updateProfile(contextMenu.user, { is_muted: m.v, muted_until: until }, m.v ? `كتم (${m.l})` : 'فك الكتم');
-                       }} 
-                       className="w-full text-right px-10 py-1.5 text-[10px] font-bold hover:text-amber-500"
-                     >
-                       {m.l}
-                     </button>
-                   ))}
-                </div>
-              )}
-
-              <button 
-                onClick={() => updateProfile(contextMenu.user, { is_kicked: true }, 'طرد العضو')} 
-                className="w-full flex items-center gap-3 px-4 py-2.5 text-xs font-bold text-orange-600 hover:bg-orange-500 hover:text-white transition-colors"
-              >
-                <LogOut className="w-4 h-4" /> طرد فوري (Kick)
-              </button>
-
-              
-              <button onClick={(e) => { e.stopPropagation(); setShowBanMenu(!showBanMenu); setShowMuteMenu(false); setShowRankMenu(false); setShowColorMenu(false); setShowDecorMenu(false); }} className="w-full flex items-center justify-between px-4 py-2.5 text-xs font-bold text-red-600 dark:text-red-400 hover:bg-red-500 hover:text-white transition-colors">
-                <div className="flex items-center gap-3"><Ban className="w-4 h-4" /> بند (حظر) العضو</div>
-                <span className="text-[8px] opacity-50">◀</span>
-              </button>
-              {showBanMenu && (
-                <div className="bg-gray-50 dark:bg-dark-900 border-y border-gray-100 dark:border-dark-700 py-1">
-                   {[
-                     { l: 'باند نهائي', v: true, d: null },
-                     { l: 'باند 6 ساعات', v: true, d: 360 },
-                     { l: 'باند 24 ساعة', v: true, d: 1440 },
-                     { l: 'باند 3 أيام', v: true, d: 4320 },
-                     { l: 'فك الحظر', v: false, d: null },
-                   ].map(m => (
-                     <button 
-                       key={m.l} 
-                       onClick={() => {
-                         const until = m.d ? new Date(Date.now() + m.d * 60000).toISOString() : null;
-                         updateProfile(contextMenu.user, { is_banned: m.v, banned_until: until }, m.v ? `حظر (${m.l})` : 'فك الحظر');
-                       }} 
-                       className="w-full text-right px-10 py-1.5 text-[10px] font-bold hover:text-red-500"
-                     >
-                       {m.l}
-                     </button>
-                   ))}
-                </div>
-              )}
-            </>
-          )}
-        </div>
-      )}
+        );
+      })()}
     </aside>
   );
 }

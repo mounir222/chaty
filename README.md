@@ -1,4 +1,4 @@
-# كلامنجي شات - Kalamngy Chat
+# شات -
 
 ## 🌟 Overview
 A real-time, comprehensive Arabic chat platform built with React, Vite, Tailwind CSS, and Supabase. The platform supports public and private chat rooms, admin dashboard, user roles, real-time messaging, and monetization ready-UI.
