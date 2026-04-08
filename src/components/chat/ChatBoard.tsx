@@ -47,7 +47,7 @@ export default function ChatBoard() {
       supabase.from('messages').insert([{
         user_id: currentUser.id,
         room_id: activeRoom.id,
-        content: `✨ انضم/ت [${currentUser.username}] للدردشة، رحبوا به/ا! 👋`,
+        content: `تم دخول العضو ${currentUser.username}`,
         type: 'system'
       }]).then();
     }

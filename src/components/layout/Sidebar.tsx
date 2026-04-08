@@ -205,15 +205,18 @@ export default function Sidebar() {
             
             <button
               onClick={async () => {
-                if (currentUser && activeRoom) {
-                  await supabase.from('messages').insert([
-                    {
-                      user_id: currentUser.id,
-                      room_id: activeRoom.id,
-                      content: `🚪 ${currentUser.username} غادر الغرفة`,
-                      type: 'system'
-                    }
-                  ]);
+                if (currentUser) {
+                  const targetRoomId = rooms.length > 0 ? rooms[0].id : activeRoom?.id;
+                  if (targetRoomId) {
+                    await supabase.from('messages').insert([
+                      {
+                        user_id: currentUser.id,
+                        room_id: targetRoomId,
+                        content: `تم خروج العضو ${currentUser.username}`,
+                        type: 'system'
+                      }
+                    ]);
+                  }
                 }
                 setCurrentUser(null);
                 navigate('/login');
