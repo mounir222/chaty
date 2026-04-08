@@ -36,6 +36,7 @@ export default function Admin() {
   const [payments, setPayments] = useState<PaymentMethod[]>([]);
   const [radios, setRadios] = useState<RadioStation[]>([]);
   const [privateMsgLog, setPrivateMsgLog] = useState<PrivateMessage[]>([]);
+  const [selectedMsgs, setSelectedMsgs] = useState<string[]>([]);
   const [pages, setPages] = useState<StaticPage[]>([]);
 
   const { currentUser, setCurrentUser, siteSettings, setSiteSettings, isAuthLoading } = useAppStore();
@@ -53,7 +54,7 @@ export default function Admin() {
 
     const fetchData = async () => {
       const [u, r, a, p, py, rd, s, pg] = await Promise.all([
-        supabase.from('user_profiles').select('*').order('created_at', { ascending: false }),
+        supabase.from('user_profiles').select('*').not('email', 'like', '%@guest.com').order('created_at', { ascending: false }),
         supabase.from('chat_rooms').select('*').order('name'),
         supabase.from('ads').select('*').order('created_at', { ascending: false }),
         supabase.from('subscription_plans').select('*').order('price'),
@@ -339,15 +340,60 @@ export default function Admin() {
             {/* Private Logs */}
             <Route path="logs" element={
                <div className="space-y-6">
-                 <h1 className="text-2xl font-bold text-gray-900 dark:text-white">سجل الرقابة والمحادثات</h1>
+                 <div className="flex items-center justify-between">
+                   <h1 className="text-2xl font-bold text-gray-900 dark:text-white">سجل الرقابة والمحادثات</h1>
+                   {selectedMsgs.length > 0 && (
+                     <button
+                       onClick={async () => {
+                         if (confirm(`هل أنت متأكد من حذف ${selectedMsgs.length} رسائل؟`)) {
+                           await supabase.from('private_messages').delete().in('id', selectedMsgs);
+                           setPrivateMsgLog(privateMsgLog.filter(m => !selectedMsgs.includes(m.id as string)));
+                           setSelectedMsgs([]);
+                           toast.success('تم حذف الرسائل المحددة بنجاح');
+                         }
+                       }}
+                       className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg font-bold transition flex items-center gap-2"
+                     >
+                       <Trash2 className="w-5 h-5" />
+                       حذف المحدد ({selectedMsgs.length})
+                     </button>
+                   )}
+                 </div>
                  <div className="bg-white dark:bg-dark-900 rounded-3xl border border-gray-200 dark:border-dark-800 overflow-hidden shadow-xl">
                     <table className="w-full text-right">
                       <thead className="bg-primary-600 text-white">
-                        <tr><th className="p-5 font-black uppercase">المرسل</th><th className="p-5 font-black uppercase">المستقبل</th><th className="p-5 font-black uppercase">الرسالة</th><th className="p-5 font-black uppercase">التوقيت</th></tr>
+                        <tr>
+                          <th className="p-4 font-black uppercase w-10">
+                            <input
+                              type="checkbox"
+                              className="w-4 h-4 cursor-pointer"
+                              onChange={(e) => {
+                                if (e.target.checked) setSelectedMsgs(privateMsgLog.map(m => m.id as string));
+                                else setSelectedMsgs([]);
+                              }}
+                              checked={selectedMsgs.length > 0 && selectedMsgs.length === privateMsgLog.length}
+                            />
+                          </th>
+                          <th className="p-5 font-black uppercase">المرسل</th>
+                          <th className="p-5 font-black uppercase">المستقبل</th>
+                          <th className="p-5 font-black uppercase">الرسالة</th>
+                          <th className="p-5 font-black uppercase">التوقيت</th>
+                        </tr>
                       </thead>
                       <tbody className="divide-y divide-gray-100 dark:divide-dark-800">
                         {privateMsgLog.map(m => (
                           <tr key={m.id} className="hover:bg-primary-50/50 dark:hover:bg-primary-900/10 transition-colors">
+                            <td className="p-4">
+                              <input
+                                type="checkbox"
+                                className="w-4 h-4 cursor-pointer"
+                                checked={selectedMsgs.includes(m.id as string)}
+                                onChange={(e) => {
+                                  if (e.target.checked) setSelectedMsgs([...selectedMsgs, m.id as string]);
+                                  else setSelectedMsgs(selectedMsgs.filter(id => id !== m.id));
+                                }}
+                              />
+                            </td>
                             <td className="p-5">
                                <span className="font-bold text-primary-600 dark:text-primary-400 bg-primary-50 dark:bg-primary-900/20 px-3 py-1.5 rounded-lg border border-primary-100 dark:border-primary-800/50">
                                  {(m.sender as any)?.username}
