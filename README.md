@@ -63,3 +63,4 @@ Enable **Realtime** on the `messages` table in Supabase Dashboard.
 - ✅ **Zustand Store** for managing user state and active rooms.
 - ✅ **Real-time Chat UI** with dynamic Message Bubbles, online presence, and emojis.
 - ✅ **Admin Dashboard** with stats, sidebar, and modular pages.
+"# chaty"  
