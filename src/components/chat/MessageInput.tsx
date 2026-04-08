@@ -103,6 +103,7 @@ export default function MessageInput({ onSend }: Props) {
       }
 
       onSend(cleanText);
+      setText('');
     }
   };
 

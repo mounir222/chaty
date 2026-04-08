@@ -31,7 +31,7 @@ export default function Sidebar() {
       if (data) {
         setRooms(data);
         if (!activeRoom && data.length > 0) {
-          setActiveRoom(data[0]);
+          joinRoom(data[0]);
         }
       }
     });
@@ -172,7 +172,8 @@ export default function Sidebar() {
 
       {currentUser && (
         <div className="p-4 border-t border-gray-200 dark:border-dark-700 bg-gray-50/50 dark:bg-dark-800/50 flex flex-col gap-3 shrink-0">
-          <div className="flex items-center gap-3 bg-white dark:bg-dark-700 p-3 rounded-2xl shadow-sm border border-gray-100 dark:border-dark-600">
+          <button onClick={() => navigate('/profile')} className="flex items-center gap-3 bg-white dark:bg-dark-700 p-3 rounded-2xl shadow-sm border border-gray-100 dark:border-dark-600 hover:border-primary-300 dark:hover:border-primary-700 transition-colors text-right relative group">
+            <div className="absolute inset-0 bg-primary-500/5 dark:bg-primary-500/10 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"></div>
             {currentUser.avatar ? (
               <img src={currentUser.avatar} alt="Avatar" className="w-10 h-10 rounded-xl object-cover shadow-sm" />
             ) : (
@@ -181,14 +182,15 @@ export default function Sidebar() {
               </div>
             )}
             <div className="flex-1 min-w-0">
-              <div className="font-bold text-gray-900 dark:text-white truncate" style={{ color: currentUser.name_color || undefined }}>
+              <div className="font-bold text-gray-900 dark:text-white truncate transition-all group-hover:text-primary-500" style={{ color: currentUser.name_color || undefined }}>
                 {currentUser.name_decoration ? currentUser.name_decoration.replace('[name]', currentUser.username) : currentUser.username}
               </div>
-              <div className="text-xs text-gray-500 dark:text-gray-400 truncate">
-                {currentUser.role === 'User' ? 'عضو' : currentUser.role}
+              <div className="text-xs text-gray-500 dark:text-gray-400 truncate flex items-center justify-between">
+                <span>{currentUser.role === 'User' ? 'عضو' : currentUser.role}</span>
+                <span className="text-[9px] bg-gray-100 dark:bg-dark-600 px-2 py-0.5 rounded-full group-hover:bg-primary-100 group-hover:text-primary-600 transition-colors">تعديل</span>
               </div>
             </div>
-          </div>
+          </button>
 
           <div className="flex gap-2">
             {(currentUser?.role === 'Admin' || currentUser?.role === 'Super') && (
