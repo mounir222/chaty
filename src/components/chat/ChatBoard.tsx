@@ -7,6 +7,41 @@ import { Share2, Users, Megaphone, Edit2 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import toast from 'react-hot-toast';
 
+function AdFrame({ html }: { html: string }) {
+  const iframeRef = useRef<HTMLIFrameElement>(null);
+  
+  useEffect(() => {
+    if (iframeRef.current && iframeRef.current.contentWindow) {
+      const doc = iframeRef.current.contentWindow.document;
+      doc.open();
+      // Write HTML properly so external scripts (like Adsterra) can execute
+      doc.write(`
+        <!DOCTYPE html>
+        <html>
+          <head>
+            <meta charset="utf-8">
+            <style>
+              body { margin: 0; padding: 0; overflow: hidden; display: flex; justify-content: center; align-items: center; background: transparent; }
+            </style>
+          </head>
+          <body>${html}</body>
+        </html>
+      `);
+      doc.close();
+    }
+  }, [html]);
+
+  return (
+    <iframe 
+      ref={iframeRef} 
+      title="AdBanner" 
+      style={{ width: '100%', height: '90px', border: 'none', overflow: 'hidden' }} 
+      scrolling="no" 
+      sandbox="allow-scripts allow-popups allow-popups-to-escape-sandbox allow-same-origin"
+    />
+  );
+}
+
 export default function ChatBoard() {
   const { activeRoom, currentUser, siteSettings } = useAppStore();
   const [messages, setMessages] = useState<Message[]>([]);
@@ -194,7 +229,9 @@ export default function ChatBoard() {
           </div>
           <div className="p-3">
             {activeAd.ad_code ? (
-              <div dangerouslySetInnerHTML={{ __html: activeAd.ad_code }} className="overflow-hidden rounded-xl" />
+              <div className="w-full flex justify-center overflow-hidden rounded-xl bg-white dark:bg-dark-800 border border-amber-100 dark:border-amber-900/30">
+                <AdFrame html={activeAd.ad_code} />
+              </div>
             ) : (
               <a href={activeAd.link} target="_blank" rel="noreferrer" className="block rounded-xl overflow-hidden border border-amber-200 dark:border-amber-900/30 shadow-sm hover:shadow-md transition cursor-pointer relative">
                 <span className="absolute top-1 right-2 bg-black/50 text-white text-[9px] px-1.5 py-0.5 rounded backdrop-blur-md">إعلان ممول</span>
