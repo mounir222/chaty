@@ -83,10 +83,9 @@ function App() {
         }
         setAuthLoading(false);
       } else {
-        const persistedUser = useAppStore.getState().currentUser;
-        if (!persistedUser?.email?.endsWith('@guest.com')) {
-            setCurrentUser(null);
-        }
+        // Do not aggressively log out users here.
+        // If their session expired, Supabase's network requests will naturally fail.
+        // If they are Mock Admin or Guests, they don't have a session anyway.
         setAuthLoading(false);
       }
     });
@@ -103,7 +102,8 @@ function App() {
         }
       } else if (event === 'SIGNED_OUT') {
         const persistedUser = useAppStore.getState().currentUser;
-        if (!persistedUser?.email?.endsWith('@guest.com')) {
+        // Keep guests and mock admin logged in even if Supabase triggers a SIGNED_OUT broadcast
+        if (persistedUser && !persistedUser.email?.endsWith('@guest.com') && persistedUser.id !== '00000000-0000-0000-0000-000000000000') {
             setCurrentUser(null);
         }
         setAuthLoading(false);
