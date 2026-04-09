@@ -15,6 +15,11 @@ function AdFrame({ html }: { html: string }) {
       const doc = iframeRef.current.contentWindow.document;
       doc.open();
       // Write HTML properly so external scripts (like Adsterra) can execute
+      // Handle protocol-relative URLs (//...) which fail in an about:blank iframe
+      const safeHtml = html
+         .replace(/src=['"]\/\/([^'"]+)['"]/g, 'src="https://$1"')
+         .replace(/href=['"]\/\/([^'"]+)['"]/g, 'href="https://$1"');
+         
       doc.write(`
         <!DOCTYPE html>
         <html>
@@ -24,7 +29,7 @@ function AdFrame({ html }: { html: string }) {
               body { margin: 0; padding: 0; overflow: hidden; display: flex; justify-content: center; align-items: center; background: transparent; }
             </style>
           </head>
-          <body>${html}</body>
+          <body>${safeHtml}</body>
         </html>
       `);
       doc.close();
